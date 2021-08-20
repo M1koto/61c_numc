@@ -1,0 +1,79 @@
+# numc
+
+Here's what I did in project 4:
+- Part 1: 
+    - allocate_matrix_ref[Jiyoo]
+    - rest[Kenny]: We implemented allocate_matrix and deallocate_matrix for basic matrix creation. We also wrote add, sub, multiplication, negation, power, and other functions in C for the data** of the matrix double pointer. For power function, We created a temproray matrix, and used the multiplication function in every mutiplication.
+- Part 2: Setup [Jiyoo]
+  - For the setup file, we had to incorporate the Extension and setup libraries. 
+  - First we set up the Extension() object and passed in the matrix.c and numc.c files required for the module.
+  - We titled the module, 'numc', as described in the spec, and passed int the LDFLAGS and CFLAGS lists as link and compile args.
+  - Next we used the setup() function to pass in the previous Extension object.
+- Part 3: Python - C Interface [Jiyoo]
+  - For this portion, we incorporated the matrix.c operations from Part 1.
+  - Using various PyObject functions, we converted Python inputs as callable variables for the C99 operations.
+  - Below are the specific breakdowns of how each module function that was implemented in this project operates:
+    - Add/Sub
+       - The inputs are two Matrix objects - we check that matrix 2 is a matrix before casting as a Matrix object.
+       - we allocate a new matrix with the same shape as the two input matrices.
+       - the shapes of the two inputs should be the same.
+       - the new matrix is filled with the add values from add_matrix.
+       - return new matrix object
+    - Matrix Multiplication
+       - Matrix 1 col and Matrix 2 row must be equal
+       - A new matrix of size Matrix 1 row's x Matrix 2 col's is allocated.
+       - filled using mul_matrix from matrix.c 
+       - return new matrix object
+    - Negation/Absolute Value
+       - The input is one matrix object
+       - A new matrix object is allocated with the same size as the input matrix
+       - The new matrix is filled using neg_matrix and abs_matrix from matrix.c
+       - return new matrix object
+    - Power
+         - The input matrix should be square
+         - the integer pow should be an integer
+         - we allocate a square matrix and fill it using the pow function in matrix.c
+    - Get/Set
+     - 1-d matrix case
+        - the matrix should have index and 0 as inputs and index should be 0 <= index < length of array
+        - uses get from matrix.c to return a double
+        - convert double into a PyObject (PyFloat) and return
+     - 2-d matrix case
+        - the matrix should have  0 <= row index < rows and 0 <= col index < cols
+        - use get from matrix.c to return a double
+        - convert double into a PyObject (PyFloat) and return 
+    - Subscript
+        - we parse the shape of the input matrix
+        - if matrix is 1-d, we consider the case when key is a integer using PyLong_Check and when key is a slice, extracted using PySlice_GetIndicesEx
+        - if matrix is 2-d, we consider the case when key is an int, slice, and a tuple
+            - if key is an int, we return the i'th row of matrix.
+            - if key is a slice, we return the slice start to slice end rows of matrix using alloc_matrix_ref from matrix.c
+            - if key is a tuple, we parse the tuple using PyTuple_GetItem and get the sub matrix using alloc_matrix_ref from matrix.c
+                - if item 1 and item 2 of tuple are ints, we get the matrix i,j value using Matrix_get_value from numc.c, and pass in a PyTuple of the i, j value.
+                - if item 1 is a slice or item 2 is a slice and the other item is an int, we get the subset of the matrix in terms of slice 1 or slice 2 and get the ith value of this slice.
+                - if item 1 and item 2 is a slice, then we get a mini matrix with the two slice indices.
+                - if item 1 or item 2 is a slice with length 1, then we return the value, not a matrix of 1x1 size.
+    - Set Subscript
+        - we parse the shape of the input matrix
+        - if matrix is 1-d, we consider the case when key is a integer using PyLong_Check and when key is a slice, extracted using PySlice_GetIndicesEx
+        - if matrix is 2-d, we consider the case when key is an int, slice, and a tuple
+            - if key is an int, we return the i'th row of matrix.
+            - if key is a slice, we return the slice start to slice end rows of matrix using set from matrix.c
+            - if key is a tuple, we parse the tuple using PyTuple_GetItem and get the sub matrix using set from matrix.c
+                - if item 1 and item 2 of tuple are ints, we get the matrix i,j value using set from matrix.c, and pass in a PyTuple of the i, j value.
+                - if item 1 is a slice or item 2 is a slice and the other item is an int, we get the subset of the matrix in terms of slice 1 or slice 2 and get the ith value of this slice.
+                - if item 1 and item 2 is a slice, then we get a mini matrix with the two slice indices.
+                - if item 1 or item 2 is a slice with length 1, then we return the value, not a matrix of 1x1 size.
+        - Value considerations
+            - if value should be the length of the slice
+            - if slice is 2d, the matrix should be 2d and the slice not out of bounds, and the value should be the same shape as the splices
+            - if slice is 1d, the value should be an int, or a list with same len as slicelen.
+        
+  - Additionally, the PyMethodDef struct, PyNumberMethods struct and the PyModuleDef struct were instantiated to connect the interface between the two.
+- Part 4: [Kenny]
+    -add, sub, negate, etc
+        We added Openmp in the inner for loop for simpler function like for parallel to avoid racing conditions. 
+    -fill:
+        Since all values are the same We just used Openmp on both inner and outer for loops
+    - Matrix Multiplication
+        We tried computing with a flat 1D array with transpose so that it is cache friendly, since regular matrix multiplication with 2D arrays would be cache inefficient when accessing value of the second matrix since we are trying to get column by column of the second matrix,and used Openmp for parallel computation as well.
